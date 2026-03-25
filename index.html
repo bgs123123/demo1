@@ -1499,7 +1499,8 @@ html, body {
       <span class="year-label">Archive</span>
       <button class="year-btn" onclick="selectYear(2023,this)">2023</button>
       <button class="year-btn" onclick="selectYear(2024,this)">2024</button>
-      <button class="year-btn active" onclick="selectYear(2025,this)">2025</button>
+      <button class="year-btn" onclick="selectYear(2025,this)">2025</button>
+      <button class="year-btn active" onclick="selectYear(2026,this)">2026</button>
     </div>
     <button class="live-entry-btn" onclick="goLive()">
       <div class="live-dot"></div>
@@ -1953,7 +1954,7 @@ function teamColor(team) {
 }
 
 // App state
-let currentYear     = 2025;
+let currentYear     = 2026;
 let allMeetings     = [];
 let expandedCard    = null;
 
@@ -3498,7 +3499,7 @@ function switchLiveTab(name, btn) {
 //  BOOT
 // ════════════════════════════════════════════════
 // Default load 2025 on startup
-loadMeetings(2025);
+loadMeetings(2026);
 </script>
 </body>
 </html>
