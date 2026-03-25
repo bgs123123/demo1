@@ -1631,6 +1631,15 @@ html, body {
       <div class="live-dot"></div>
       LIVE SESSION
     </button>
+    <button onclick="document.getElementById('carTestPanel').style.display='block'" style="
+      background:transparent;border:1px solid var(--border2);color:var(--muted);
+      padding:8px 16px;border-radius:2px;font-family:'Barlow Condensed',sans-serif;
+      font-size:12px;font-weight:600;letter-spacing:2px;cursor:pointer;
+      text-transform:uppercase;transition:all 0.2s;"
+      onmouseover="this.style.borderColor='var(--border2)';this.style.color='var(--text)'"
+      onmouseout="this.style.color='var(--muted)'">
+      🔬 Car Data Test
+    </button>
   </div>
 
   <div class="browser-body">
@@ -1842,6 +1851,7 @@ html, body {
         <button class="tab-btn active" onclick="switchTab('gaps',this)">Gap Chart</button>
         <button class="tab-btn" onclick="switchTab('sectors',this)">Sectors</button>
         <button class="tab-btn" onclick="switchTab('stints',this)">Stints</button>
+        <button class="tab-btn" onclick="switchTab('telemetry',this)">⚡ Telemetry</button>
         <button class="tab-btn" onclick="switchTab('champ',this)">Championship</button>
         <button class="tab-btn popout-btn" id="popoutBtn" onclick="toggleFloatMap(this)" title="Pop out track map">↗ Float</button>
       </div>
@@ -1867,6 +1877,49 @@ html, body {
       </div>
       <div class="tab-pane" id="tab-stints">
         <div class="stints-content" id="stintsPanel"></div>
+      </div>
+      <div class="tab-pane" id="tab-telemetry" style="flex-direction:column;overflow:hidden;">
+        <!-- Driver picker -->
+        <div id="telemPicker" style="
+          display:flex;align-items:center;gap:10px;padding:8px 14px;
+          background:var(--bg3);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;">
+          <span style="font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;
+            letter-spacing:2px;color:var(--muted);text-transform:uppercase">Compare</span>
+          <select id="telemDrvA" onchange="telemSelectionChanged()"
+            style="background:var(--bg4);border:1px solid var(--border2);color:var(--text);
+            padding:4px 8px;border-radius:2px;font-family:'Barlow Condensed',sans-serif;
+            font-size:13px;font-weight:700;cursor:pointer;outline:none;">
+            <option value="">Driver A</option>
+          </select>
+          <span style="color:var(--muted);font-size:11px">vs</span>
+          <select id="telemDrvB" onchange="telemSelectionChanged()"
+            style="background:var(--bg4);border:1px solid var(--border2);color:var(--text);
+            padding:4px 8px;border-radius:2px;font-family:'Barlow Condensed',sans-serif;
+            font-size:13px;font-weight:700;cursor:pointer;outline:none;">
+            <option value="">Driver B</option>
+          </select>
+          <span style="font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:600;
+            letter-spacing:1px;color:var(--muted);text-transform:uppercase">Fastest Lap</span>
+          <button id="telemLoadBtn" onclick="loadTelemetry()" style="
+            background:var(--accent);border:none;color:#fff;padding:5px 16px;
+            border-radius:2px;font-family:'Barlow Condensed',sans-serif;font-weight:700;
+            font-size:12px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;
+            transition:opacity 0.2s;" disabled>LOAD</button>
+          <span id="telemStatus" style="font-family:'Share Tech Mono',monospace;font-size:10px;
+            color:var(--muted);margin-left:auto"></span>
+        </div>
+        <!-- Canvas area -->
+        <div style="flex:1;position:relative;min-height:0;overflow:hidden;">
+          <canvas id="telemCanvas" style="width:100%;height:100%;display:block;"></canvas>
+          <div id="telemEmpty" style="position:absolute;inset:0;display:flex;flex-direction:column;
+            align-items:center;justify-content:center;gap:8px;color:var(--muted);pointer-events:none;">
+            <div style="font-size:24px">⚡</div>
+            <div style="font-size:11px;text-align:center;line-height:1.7">
+              Select two drivers and click LOAD<br>
+              <span style="font-size:10px;color:var(--border2)">Fetches fastest lap telemetry for each driver</span>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="tab-pane" id="tab-champ">
         <div class="tab-bar" style="border-top:none">
@@ -1928,6 +1981,37 @@ html, body {
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
+
+<!-- Car Data Test Panel -->
+<div id="carTestPanel" style="
+  display:none;position:fixed;bottom:24px;right:24px;z-index:600;
+  width:380px;background:var(--bg2);border:1px solid var(--border2);
+  border-radius:3px;box-shadow:0 8px 32px rgba(0,0,0,0.6);
+  font-family:'Barlow',sans-serif;overflow:hidden;">
+  <div style="display:flex;align-items:center;justify-content:space-between;
+    padding:0 14px;height:36px;background:var(--bg3);border-bottom:1px solid var(--border);">
+    <span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;
+      font-size:11px;letter-spacing:3px;color:var(--muted);text-transform:uppercase">
+      Car Data Test
+    </span>
+    <button onclick="document.getElementById('carTestPanel').style.display='none'"
+      style="background:transparent;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:0;line-height:1">✕</button>
+  </div>
+  <div style="padding:14px;">
+    <div style="font-size:11px;color:var(--muted2);line-height:1.6;margin-bottom:12px">
+      Tests whether <code style="color:var(--accent2)">/car_data</code> returns real throttle, brake, speed and RPM values on the free tier.<br>
+      Uses: <strong style="color:var(--text)">VER fastest lap · Abu Dhabi 2024 Race</strong>
+    </div>
+    <button id="carTestBtn" onclick="runCarDataTest()" style="
+      background:var(--accent);border:none;color:#fff;padding:8px 20px;
+      border-radius:2px;font-family:'Barlow Condensed',sans-serif;font-weight:700;
+      font-size:13px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;
+      width:100%;margin-bottom:12px;">
+      Run Test
+    </button>
+    <div id="carTestOutput" style="min-height:40px"></div>
+  </div>
+</div>
 
 <!-- ═══════════════════════════════════════
      SCREEN 4: LIVE DASHBOARD
@@ -3171,7 +3255,7 @@ function switchTab(name, btn) {
     if (b.closest('.tab-bar') === btn.closest('.tab-bar')) b.classList.remove('active');
   });
   btn.classList.add('active');
-  ['trackmap','gaps','sectors','stints','champ'].forEach(n => {
+  ['trackmap','gaps','sectors','stints','telemetry','champ'].forEach(n => {
     const tp = document.getElementById(`tab-${n}`);
     if (tp) tp.classList.toggle('active', n===name);
   });
@@ -3180,6 +3264,10 @@ function switchTab(name, btn) {
       resizeTrackCanvas();
       if (SD.sessionStart) updateTrackMap(currentAbsTime());
     });
+  }
+  if (name === 'telemetry') {
+    populateTelemDrivers();
+    requestAnimationFrame(() => resizeTelemCanvas());
   }
 }
 
@@ -4334,6 +4422,509 @@ function initFloatDrag() {
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup',   onUp);
   };
+}
+
+// ════════════════════════════════════════════════
+//  TELEMETRY COMPARATOR
+// ════════════════════════════════════════════════
+let TELEM = {
+  drvA: null, drvB: null,
+  dataA: null, dataB: null,
+  lapA: null,  lapB: null,
+  loading: false,
+  ro: null,
+};
+
+// Populate driver dropdowns from loaded session
+function populateTelemDrivers() {
+  const selA = document.getElementById('telemDrvA');
+  const selB = document.getElementById('telemDrvB');
+  if (!selA || !selB) return;
+
+  // Get positions to sort by race order
+  const posMap = {};
+  Object.keys(SD._posIdx || {}).map(Number).forEach(dn => {
+    const arr = SD._posIdx[dn];
+    if (arr && arr.length) posMap[dn] = arr[arr.length - 1].pos;
+  });
+
+  const drivers = Object.values(SD.drivers || {})
+    .filter(d => SD._lapIdx[d.driver_number]?.length > 0)
+    .sort((a, b) => (posMap[a.driver_number] || 99) - (posMap[b.driver_number] || 99));
+
+  const prevA = selA.value, prevB = selB.value;
+  [selA, selB].forEach((sel, i) => {
+    sel.innerHTML = `<option value="">Driver ${i === 0 ? 'A' : 'B'}</option>`;
+    drivers.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d.driver_number;
+      opt.textContent = `${d.name_acronym || '#'+d.driver_number} — ${d.broadcast_name || d.full_name || ''}`;
+      sel.appendChild(opt);
+    });
+  });
+
+  // Restore previous selection or default top-2
+  if (drivers.length >= 2) {
+    selA.value = prevA || drivers[0].driver_number;
+    selB.value = prevB || drivers[1].driver_number;
+  }
+  telemSelectionChanged();
+}
+
+function telemSelectionChanged() {
+  const a = document.getElementById('telemDrvA')?.value;
+  const b = document.getElementById('telemDrvB')?.value;
+  const btn = document.getElementById('telemLoadBtn');
+  if (btn) btn.disabled = !(a && b && a !== b);
+  // Reset if drivers changed
+  if (a !== TELEM.drvA || b !== TELEM.drvB) {
+    TELEM.dataA = null; TELEM.dataB = null;
+    TELEM.lapA  = null; TELEM.lapB  = null;
+  }
+}
+
+async function loadTelemetry() {
+  const drvA = Number(document.getElementById('telemDrvA').value);
+  const drvB = Number(document.getElementById('telemDrvB').value);
+  if (!drvA || !drvB || drvA === drvB) return;
+
+  TELEM.drvA = drvA; TELEM.drvB = drvB;
+  TELEM.dataA = null; TELEM.dataB = null;
+  TELEM.loading = true;
+
+  const btn    = document.getElementById('telemLoadBtn');
+  const status = document.getElementById('telemStatus');
+  btn.disabled = true;
+  btn.textContent = 'LOADING…';
+
+  const setStatus = (msg) => { if (status) status.textContent = msg; };
+
+  try {
+    // Find fastest lap for each driver from already-loaded laps data
+    const getFastestLap = (dn) => {
+      const laps = (SD._lapIdx[dn] || []).filter(l => l.lap_duration && !l.is_pit_out_lap);
+      if (!laps.length) return null;
+      return laps.reduce((a, b) => a.lap_duration < b.lap_duration ? a : b);
+    };
+
+    TELEM.lapA = getFastestLap(drvA);
+    TELEM.lapB = getFastestLap(drvB);
+
+    const dA = SD.drivers[drvA] || {}, dB = SD.drivers[drvB] || {};
+    const abbrA = dA.name_acronym || '#'+drvA;
+    const abbrB = dB.name_acronym || '#'+drvB;
+
+    if (!TELEM.lapA) throw new Error(`No valid laps for ${abbrA}`);
+    if (!TELEM.lapB) throw new Error(`No valid laps for ${abbrB}`);
+
+    // Fetch car_data for each fastest lap
+    const fetchLapData = async (lap, dn, label) => {
+      setStatus(`Fetching ${label} L${lap.lap_number}…`);
+      const start = new Date(lap.date_start || lap.date).toISOString();
+      // Add 2s buffer at end to catch the crossing line
+      const end   = new Date(new Date(lap.date_start || lap.date).getTime() + (lap.lap_duration + 2) * 1000).toISOString();
+      const data  = await apiFetch(
+        `/car_data?session_key=${SD.sessionKey}&driver_number=${dn}&date>=${start}&date<=${end}`
+      );
+      return data.sort((a, b) => new Date(a.date) - new Date(b.date));
+    };
+
+    TELEM.dataA = await fetchLapData(TELEM.lapA, drvA, abbrA);
+    TELEM.dataB = await fetchLapData(TELEM.lapB, drvB, abbrB);
+
+    if (!TELEM.dataA.length) throw new Error(`No car data for ${abbrA}`);
+    if (!TELEM.dataB.length) throw new Error(`No car data for ${abbrB}`);
+
+    // Normalise timestamps to 0..1 (fraction of lap)
+    const normalise = (data, lapDur) => {
+      const t0 = new Date(data[0].date).getTime();
+      return data.map(d => ({
+        ...d,
+        t: Math.min(1, Math.max(0, (new Date(d.date).getTime() - t0) / (lapDur * 1000)))
+      }));
+    };
+    TELEM.dataA = normalise(TELEM.dataA, TELEM.lapA.lap_duration);
+    TELEM.dataB = normalise(TELEM.dataB, TELEM.lapB.lap_duration);
+
+    setStatus(`${abbrA} L${TELEM.lapA.lap_number} ${formatLapTime(TELEM.lapA.lap_duration)} · ${abbrB} L${TELEM.lapB.lap_number} ${formatLapTime(TELEM.lapB.lap_duration)}`);
+    TELEM.loading = false;
+    btn.disabled  = false;
+    btn.textContent = 'RELOAD';
+
+    document.getElementById('telemEmpty').style.display = 'none';
+    resizeTelemCanvas();
+    drawTelemetry();
+
+  } catch(e) {
+    setStatus('Error: ' + e.message);
+    TELEM.loading = false;
+    btn.disabled  = false;
+    btn.textContent = 'RETRY';
+  }
+}
+
+// ── Canvas sizing ──
+function resizeTelemCanvas() {
+  const canvas = document.getElementById('telemCanvas');
+  if (!canvas) return;
+  const parent = canvas.parentElement;
+  if (!parent) return;
+  const w = parent.clientWidth, h = parent.clientHeight;
+  if (canvas.width !== w || canvas.height !== h) {
+    canvas.width = w; canvas.height = h;
+  }
+}
+
+// ── Drawing ──
+function drawTelemetry() {
+  const canvas = document.getElementById('telemCanvas');
+  if (!canvas || !TELEM.dataA || !TELEM.dataB) return;
+  resizeTelemCanvas();
+
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const dA = SD.drivers[TELEM.drvA] || {}, dB = SD.drivers[TELEM.drvB] || {};
+  const colA = '#00d4ff';
+  const colB = '#ff6b35';
+  const abbrA = dA.name_acronym || '#'+TELEM.drvA;
+  const abbrB = dB.name_acronym || '#'+TELEM.drvB;
+
+  // Layout: 4 channels stacked vertically
+  // Speed, Throttle, Brake, Gear
+  const PAD_L = 48, PAD_R = 16, PAD_TOP = 28, PAD_BOT = 16;
+  const CHANNELS = [
+    { key: 'speed',    label: 'SPEED',    unit: 'km/h', max: null,  colour: null,  height: 0.35 },
+    { key: 'throttle', label: 'THROTTLE', unit: '%',    max: 100,   colour: null,  height: 0.25 },
+    { key: 'brake',    label: 'BRAKE',    unit: '',     max: 100,   colour: null,  height: 0.15 },
+    { key: 'n_gear',   label: 'GEAR',     unit: '',     max: 8,     colour: null,  height: 0.25 },
+  ];
+
+  const totalH = H - PAD_TOP - PAD_BOT;
+  const plotW  = W - PAD_L - PAD_R;
+
+  // Compute channel y positions
+  let yOffset = PAD_TOP;
+  CHANNELS.forEach(ch => {
+    ch.y = yOffset;
+    ch.h = Math.floor(totalH * ch.height) - 4;
+    yOffset += ch.h + 4;
+  });
+
+  // Global max speed across both drivers
+  const allSpeeds = [...TELEM.dataA, ...TELEM.dataB].map(d => d.speed);
+  const maxSpeed  = Math.max(...allSpeeds, 200);
+  CHANNELS[0].max = Math.ceil(maxSpeed / 50) * 50;
+
+  // ── Draw channel backgrounds & labels ──
+  CHANNELS.forEach(ch => {
+    // Background
+    ctx.fillStyle = 'rgba(22,22,31,0.8)';
+    ctx.fillRect(PAD_L, ch.y, plotW, ch.h);
+
+    // Grid lines
+    ctx.strokeStyle = 'rgba(37,37,50,0.8)';
+    ctx.lineWidth   = 1;
+    const gridLines = ch.key === 'n_gear' ? 8 : 4;
+    for (let i = 1; i < gridLines; i++) {
+      const gy = ch.y + ch.h - (ch.h * i / gridLines);
+      ctx.beginPath(); ctx.moveTo(PAD_L, gy); ctx.lineTo(PAD_L + plotW, gy); ctx.stroke();
+    }
+
+    // Sector markers at S1/S2 boundaries (approx 38%/65% of lap)
+    [0.38, 0.65].forEach(sx => {
+      const x = PAD_L + sx * plotW;
+      ctx.strokeStyle = 'rgba(100,100,130,0.3)';
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(x, ch.y); ctx.lineTo(x, ch.y + ch.h); ctx.stroke();
+      ctx.setLineDash([]);
+    });
+
+    // Label
+    ctx.save();
+    ctx.font         = 'bold 9px "Barlow Condensed"';
+    ctx.fillStyle    = 'rgba(100,100,130,0.9)';
+    ctx.textAlign    = 'right';
+    ctx.textBaseline = 'top';
+    ctx.fillText(ch.label, PAD_L - 4, ch.y + 2);
+    // Max value label
+    if (ch.max) {
+      ctx.textBaseline = 'top';
+      ctx.fillText(ch.max + (ch.unit ? ch.unit : ''), PAD_L - 4, ch.y + 2);
+    }
+    ctx.restore();
+
+    // Y axis label
+    ctx.save();
+    ctx.font      = '700 8px "Barlow Condensed"';
+    ctx.fillStyle = 'rgba(80,80,105,0.8)';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'top';
+    ctx.fillText(ch.label, PAD_L - 4, ch.y + 2);
+    if (ch.max) {
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText(String(ch.max), PAD_L - 4, ch.y + 12);
+    }
+    ctx.restore();
+  });
+
+  // ── Draw data lines ──
+  const drawChannel = (data, ch, colour, alpha = 1) => {
+    if (!data.length) return;
+    const max = ch.max;
+    ctx.save();
+    ctx.strokeStyle = colour;
+    ctx.lineWidth   = ch.key === 'brake' ? 0 : 1.5;
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+
+    if (ch.key === 'brake') {
+      // Brake: filled rectangles where active
+      ctx.fillStyle = colour;
+      let inBrake = false, brakeStart = 0;
+      data.forEach((d, i) => {
+        const x = PAD_L + d.t * plotW;
+        if (d.brake === 100 && !inBrake) { inBrake = true; brakeStart = x; }
+        if (d.brake === 0   && inBrake)  {
+          inBrake = false;
+          ctx.fillRect(brakeStart, ch.y + 2, x - brakeStart, ch.h - 4);
+        }
+      });
+      if (inBrake) ctx.fillRect(brakeStart, ch.y + 2, PAD_L + plotW - brakeStart, ch.h - 4);
+    } else if (ch.key === 'n_gear') {
+      // Gear: step chart
+      ctx.lineWidth   = 1.5;
+      ctx.strokeStyle = colour;
+      data.forEach((d, i) => {
+        const x  = PAD_L + d.t * plotW;
+        const val = Math.max(0, Math.min(max, d[ch.key] || 0));
+        const y  = ch.y + ch.h - (ch.h * val / max);
+        if (i === 0) ctx.moveTo(x, y);
+        else {
+          // Horizontal then vertical for step
+          const xprev = PAD_L + data[i-1].t * plotW;
+          ctx.lineTo(x, ch.y + ch.h - (ch.h * Math.max(0, data[i-1][ch.key]||0) / max));
+          ctx.lineTo(x, y);
+        }
+      });
+      ctx.stroke();
+    } else {
+      // Smooth line
+      data.forEach((d, i) => {
+        const x   = PAD_L + d.t * plotW;
+        const val = Math.max(0, Math.min(max, d[ch.key] || 0));
+        const y   = ch.y + ch.h - (ch.h * val / max);
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      // Fill under speed curve
+      if (ch.key === 'speed') {
+        ctx.lineTo(PAD_L + data[data.length-1].t * plotW, ch.y + ch.h);
+        ctx.lineTo(PAD_L, ch.y + ch.h);
+        ctx.closePath();
+        ctx.fillStyle = colour + '14';
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  };
+
+  // Draw B first (behind), then A on top
+  CHANNELS.forEach(ch => {
+    drawChannel(TELEM.dataB, ch, colB, 0.65);
+    drawChannel(TELEM.dataA, ch, colA, 0.9);
+  });
+
+  // ── Delta line between speed curves ──
+  // Show where A is faster/slower (shaded band between the two speed lines)
+  const speedCh = CHANNELS[0];
+  ctx.save();
+  ctx.globalAlpha = 0.12;
+  // Interleave points from both datasets at matching time fractions
+  // Use simple linear interpolation to get A speed at B's time points
+  const interpA = (t) => {
+    let lo = 0, hi = TELEM.dataA.length - 1;
+    while (lo < hi - 1) {
+      const mid = (lo + hi) >> 1;
+      if (TELEM.dataA[mid].t <= t) lo = mid; else hi = mid;
+    }
+    const a = TELEM.dataA[lo], b = TELEM.dataA[hi];
+    const f = b.t > a.t ? (t - a.t) / (b.t - a.t) : 0;
+    return a.speed + (b.speed - a.speed) * f;
+  };
+  TELEM.dataB.forEach((dB, i) => {
+    if (i === 0) return;
+    const dBprev = TELEM.dataB[i-1];
+    const sA     = interpA(dB.t);
+    const sAprev = interpA(dBprev.t);
+    const faster = dB.speed > sA; // B faster than A at this point
+    const x0 = PAD_L + dBprev.t * plotW, x1 = PAD_L + dB.t * plotW;
+    const yA0 = speedCh.y + speedCh.h - speedCh.h * Math.min(sAprev, speedCh.max) / speedCh.max;
+    const yA1 = speedCh.y + speedCh.h - speedCh.h * Math.min(sA, speedCh.max)     / speedCh.max;
+    const yB0 = speedCh.y + speedCh.h - speedCh.h * Math.min(dBprev.speed, speedCh.max) / speedCh.max;
+    const yB1 = speedCh.y + speedCh.h - speedCh.h * Math.min(dB.speed,     speedCh.max) / speedCh.max;
+    ctx.fillStyle = faster ? colB : colA;
+    ctx.beginPath();
+    ctx.moveTo(x0, yA0); ctx.lineTo(x1, yA1);
+    ctx.lineTo(x1, yB1); ctx.lineTo(x0, yB0);
+    ctx.closePath(); ctx.fill();
+  });
+  ctx.restore();
+
+  // ── X axis: sector markers with labels ──
+  ctx.save();
+  ctx.font      = '700 9px "Barlow Condensed"';
+  ctx.fillStyle = 'rgba(100,100,130,0.7)';
+  ctx.textAlign = 'center';
+  const lastY = CHANNELS[CHANNELS.length-1];
+  const axisY = lastY.y + lastY.h + 12;
+  [['S1', 0], ['S2', 0.38], ['S3', 0.65], ['FL', 1]].forEach(([lbl, fx]) => {
+    const x = PAD_L + fx * plotW;
+    ctx.fillText(lbl, x, axisY);
+    // Tick
+    ctx.strokeStyle = 'rgba(80,80,105,0.4)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, PAD_TOP);
+    ctx.lineTo(x, lastY.y + lastY.h);
+    ctx.stroke();
+  });
+  ctx.restore();
+
+  // ── Legend ──
+  ctx.save();
+  const legY = PAD_TOP - 18;
+  // Driver A
+  ctx.fillStyle = colA;
+  ctx.fillRect(PAD_L, legY, 20, 3);
+  ctx.font      = 'bold 10px "Barlow Condensed"';
+  ctx.fillStyle = colA;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(`${abbrA}  L${TELEM.lapA?.lap_number || '?'}  ${formatLapTime(TELEM.lapA?.lap_duration)}`, PAD_L + 24, legY + 1);
+  // Driver B
+  const midX = PAD_L + plotW / 2;
+  ctx.fillStyle = colB;
+  ctx.globalAlpha = 0.7;
+  ctx.fillRect(midX, legY, 20, 3);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = colB;
+  ctx.fillText(`${abbrB}  L${TELEM.lapB?.lap_number || '?'}  ${formatLapTime(TELEM.lapB?.lap_duration)}`, midX + 24, legY + 1);
+  ctx.restore();
+}
+
+// Watch for resize on telemetry tab
+(function() {
+  const ro = new ResizeObserver(() => {
+    resizeTelemCanvas();
+    if (TELEM.dataA && TELEM.dataB) drawTelemetry();
+  });
+  // Observe after DOM ready
+  document.addEventListener('DOMContentLoaded', () => {
+    const el = document.getElementById('telemCanvas')?.parentElement;
+    if (el) ro.observe(el);
+  });
+  // Also try immediately in case DOM is already ready
+  setTimeout(() => {
+    const el = document.getElementById('telemCanvas')?.parentElement;
+    if (el) ro.observe(el);
+  }, 100);
+})();
+//  Tests whether /car_data returns real values on
+//  the free tier for a known historical session.
+//  Uses: 2024 Abu Dhabi GP Race, Verstappen (#1)
+//  session_key=9839 (Abu Dhabi 2024 Race)
+// ════════════════════════════════════════════════
+async function runCarDataTest() {
+  const btn  = document.getElementById('carTestBtn');
+  const out  = document.getElementById('carTestOutput');
+  btn.disabled   = true;
+  btn.textContent = 'Testing…';
+  out.innerHTML   = '<div style="color:var(--muted);font-size:11px">Fetching laps for VER at Abu Dhabi 2024…</div>';
+
+  const SESSION = 9839; // Abu Dhabi 2024 Race
+  const DRIVER  = 1;    // Verstappen
+
+  try {
+    // Step 1 — get laps to find fastest
+    const laps = await apiFetch(`/laps?session_key=${SESSION}&driver_number=${DRIVER}`);
+    const valid = laps.filter(l => l.lap_duration && !l.is_pit_out_lap);
+    if (!valid.length) throw new Error('No valid laps returned');
+
+    const fastest = valid.reduce((a,b) => a.lap_duration < b.lap_duration ? a : b);
+    out.innerHTML += `<div style="color:var(--green);font-size:11px">✓ Fastest lap found: L${fastest.lap_number} — ${formatLapTime(fastest.lap_duration)}</div>`;
+    out.innerHTML += `<div style="color:var(--muted);font-size:11px">Lap start: ${fastest.date_start}</div>`;
+
+    // Step 2 — fetch car_data for that lap window
+    const lapStart = new Date(fastest.date_start).toISOString();
+    const lapEnd   = new Date(new Date(fastest.date_start).getTime() + fastest.lap_duration * 1000).toISOString();
+    out.innerHTML += `<div style="color:var(--muted);font-size:11px">Fetching car_data for that lap window…</div>`;
+
+    const carData = await apiFetch(
+      `/car_data?session_key=${SESSION}&driver_number=${DRIVER}&date>=${lapStart}&date<=${lapEnd}`
+    );
+
+    if (!carData.length) {
+      out.innerHTML += `<div style="color:var(--accent);font-size:11px">⚠ No car_data records returned at all.</div>`;
+      btn.textContent = 'Run Test Again';
+      btn.disabled = false;
+      return;
+    }
+
+    out.innerHTML += `<div style="color:var(--green);font-size:11px">✓ ${carData.length} records returned</div>`;
+
+    // Step 3 — analyse values
+    const sample  = carData[Math.floor(carData.length / 2)]; // mid-lap sample
+    const allZero = carData.every(d => d.throttle === 0 && d.brake === 0 && d.speed === 0 && d.rpm === 0);
+    const allThrottleZero = carData.every(d => d.throttle === 0);
+    const maxSpeed    = Math.max(...carData.map(d => d.speed));
+    const maxThrottle = Math.max(...carData.map(d => d.throttle));
+    const maxRPM      = Math.max(...carData.map(d => d.rpm));
+    const gears       = [...new Set(carData.map(d => d.n_gear))].sort((a,b)=>a-b);
+    const brakeEvents = carData.filter(d => d.brake === 100).length;
+
+    out.innerHTML += `
+      <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;letter-spacing:2px;color:var(--text);margin-bottom:6px">
+          ${allZero ? '❌ ALL VALUES ARE ZERO — free tier limit confirmed' : '✅ REAL DATA CONFIRMED'}
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-family:'Share Tech Mono',monospace;font-size:11px;">
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:3px 0;color:var(--muted)">Records</td>
+            <td style="color:var(--text);text-align:right">${carData.length}</td>
+            <td style="padding:3px 0 3px 16px;color:var(--muted)">Status</td>
+            <td style="text-align:right;color:${allZero?'var(--accent)':'var(--green)'}">${allZero ? 'ZEROS' : 'REAL'}</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:3px 0;color:var(--muted)">Max Speed</td>
+            <td style="color:var(--text);text-align:right">${maxSpeed} km/h</td>
+            <td style="padding:3px 0 3px 16px;color:var(--muted)">Max RPM</td>
+            <td style="text-align:right;color:var(--text)">${maxRPM.toLocaleString()}</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:3px 0;color:var(--muted)">Max Throttle</td>
+            <td style="color:var(--text);text-align:right">${maxThrottle}%</td>
+            <td style="padding:3px 0 3px 16px;color:var(--muted)">Brake events</td>
+            <td style="text-align:right;color:var(--text)">${brakeEvents}</td>
+          </tr>
+          <tr>
+            <td style="padding:3px 0;color:var(--muted)">Gears seen</td>
+            <td colspan="3" style="color:var(--text);text-align:right">${gears.join(', ')}</td>
+          </tr>
+        </table>
+        <div style="margin-top:8px;color:var(--muted);font-size:10px">Mid-lap sample: speed=${sample.speed} throttle=${sample.throttle} brake=${sample.brake} gear=${sample.n_gear} rpm=${sample.rpm}</div>
+      </div>`;
+
+    btn.textContent = 'Run Test Again';
+    btn.disabled = false;
+
+  } catch(e) {
+    out.innerHTML += `<div style="color:var(--accent);font-size:11px">Error: ${e.message}</div>`;
+    btn.textContent = 'Run Test Again';
+    btn.disabled = false;
+  }
 }
 
 // ════════════════════════════════════════════════
